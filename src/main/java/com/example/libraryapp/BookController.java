@@ -20,6 +20,7 @@ import jakarta.validation.Valid;
 
 
 @RestController
+@RequestMapping("/api/books")
 public class BookController{
   private final BookRepository repository;
 
@@ -32,13 +33,13 @@ public class BookController{
     }
   }
 
-  @GetMapping("/books")
+  @GetMapping
   public List<Book> getAllBooks() {
     return repository.findAll();
   }
 
 
-  @GetMapping("/books/titles")
+  @GetMapping("/titles")
   public Page<BookTitleOnly> getBookTitles(
     @RequestParam String author,
     @RequestParam(defaultValue = "0") int page,
@@ -51,7 +52,7 @@ public class BookController{
 
 
   // Strict Search
-  @GetMapping("/books/search/exact")
+  @GetMapping(params = "author")
   public Page<Book> searchByAuthorExact(
     @RequestParam String author,
     @RequestParam(defaultValue = "0") int page,
@@ -62,9 +63,9 @@ public class BookController{
   }
 
   // Flexible Search
-  @GetMapping("/books/search/contains")
+  @GetMapping(params = "authorContains")
   public Page<Book> searchByAuthorContains(
-    @RequestParam String author,
+    @RequestParam("authorContains") String author,
     @RequestParam(defaultValue = "0") int page,
     @RequestParam(defaultValue = "10") int size
   ){
@@ -73,7 +74,7 @@ public class BookController{
   }
 
 
-  @PostMapping("/books")
+  @PostMapping
   public Book addBook(@Valid @RequestBody Book newBook) {
     // This sends a tiny "Ask" to the DB, not a request for the whole list
     if (repository.existsByTitleIgnoreCaseAndAuthorIgnoreCase(newBook.getTitle(), newBook.getAuthor())) {
@@ -84,7 +85,7 @@ public class BookController{
     return repository.save(newBook);
   }
 
-  @PutMapping("/books/{id}")
+  @PutMapping("/{id}")
   public Book updateBook(@PathVariable UUID id, @RequestBody Book bookDetails) {
     return repository.findById(id).map(book -> {
       book.setTitle(bookDetails.getTitle());
@@ -93,7 +94,7 @@ public class BookController{
     }).orElseThrow(() -> new RuntimeException("Book not found with id " + id));
   }
 
-  @DeleteMapping("/books/{id}")
+  @DeleteMapping("/{id}")
   public String deleteBook(@PathVariable UUID id){
     if(repository.existsById(id)){
       repository.deleteById(id);
