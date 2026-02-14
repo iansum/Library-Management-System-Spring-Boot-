@@ -1,0 +1,57 @@
+package com.example.libraryapp;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+public class HelloController{
+  private final BookRepository repository;
+
+  public HelloController(BookRepository repository){
+    this.repository = repository;
+
+    if (repository.count() == 0) {
+      repository.save(new Book("The Rust Programminng Language", "Steve Klabnik"));
+      repository.save(new Book("Clean Code", "Robert C. Martin"));
+    }
+  }
+
+  @GetMapping("/books")
+  public List<Book> getAllBooks() {
+    return repository.findAll()
+  }
+
+  @PostMapping("/books")
+  public Book addBook(@RequestBody Book newBook) {
+    return repository.save(newBook);
+  }
+
+  @PutMapping("/books/{id}")
+  public Book updateBook(@PathVariable UUID id, @RequestBody Book bookDetails) {
+    return repository.findById(id).map(book -> {
+      book.setTitle(bookDetails.getTitle());
+      book.setAuthor(bookDetails.getAuthor());
+      return repository.save(book);
+    }).orElsetThrow(() -> new RuntimeException("Book not found with id " + id));
+  }
+
+  @DeleteMapping("/books/{id}")
+  public String deleteBook(@PathVariable UUID id){
+    if(repository.existedById(id) {
+      repository.deletedById(id);
+      return "Book with ID " + id + " has been successfully deleted.";
+    } else {
+      return "Error: Book with ID "  +  id + " not found.";
+    }
+  }
+}
+
+
+

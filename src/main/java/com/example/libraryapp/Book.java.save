@@ -1,0 +1,63 @@
+package com.example.libraryapp;
+
+import java.util.UUID;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Column;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+@Entity
+@Table(
+  name = "books",
+  indexes = {
+    // Keep these single-column indexes for flexible searching
+    @Index(name = "idx_author", columnList = "author"),
+    @Index(name = "idx_title", columnList - "title")
+  }
+  // This Constraint AUTOMATICALLy create a composite inded for (title + author)
+  // So you get O(log n) speed AND data safety
+  uniqueContraints = {
+    @UniqueConstraint(columnNames = {"title", "author"})
+  }
+
+)
+public class Book {
+  @Id
+  @GeneratedValue
+  @Column(columnDefinition = "UUID", updatable = false, nullable = false)
+  private UUID id;
+
+  @NotBlank(message = "Title cannot be empty")
+  @Size(min = 2, max = 200, message = "Title must be between 2  and 200 characters")
+  private String title;
+
+
+  @NotBlank(message= "Author cannot be empty")
+  private String author;
+
+  // The Magic Field
+  @Version
+  private Integer version;
+
+  protected Book(){}
+
+  public Book(String title, String author){
+    this.title = title;
+    this.author = author;
+  }
+
+
+  public UUID getId() { return id; }
+  public String getTitle() { return title; }
+  public String getAuthor() { return author; }
+  public void setTitle(String title){ this.title = title; }
+  public void setAuthor(String author){ this.author = author; }
+  // setVersion
+  public void setVersion(Integer version) { this.version = version; }
+}
