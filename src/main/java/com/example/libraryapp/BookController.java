@@ -14,6 +14,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
 import java.util.List;
 import java.util.UUID;
 import jakarta.validation.Valid;
@@ -34,73 +36,74 @@ public class BookController{
   }
 
   @GetMapping
-  public List<Book> getAllBooks() {
-    return repository.findAll();
+  public ResponseEntity<List<Book>> getAllBooks() {
+    return ResponseEntity.ok(repository.findAll());
   }
 
 
   @GetMapping("/titles")
-  public Page<BookTitleOnly> getBookTitles(
+  public ResponseEntity<Page<BookTitleOnly>> getBookTitles(
     @RequestParam String author,
     @RequestParam(defaultValue = "0") int page,
     @RequestParam(defaultValue = "10") int size
   ){
     Pageable pageable = PageRequest.of(page, size);
-    // Just give them what they want: anything that matches the strig
-    return repository.findTitlesByAuthorContainingIgnoreCase(author, pageable);
+    return ResponseEntity.ok(repository.findTitlesByAuthorContainingIgnoreCase(author, pageable));
   }
 
 
   // Strict Search
   @GetMapping(params = "author")
-  public Page<Book> searchByAuthorExact(
+  public ResponseEntity<Page<Book>> searchByAuthorExact(
     @RequestParam String author,
     @RequestParam(defaultValue = "0") int page,
     @RequestParam(defaultValue = "10") int size
   ) {
     Pageable pageable = PageRequest.of(page, size);
-    return repository.findByAuthorIgnoreCase(author, pageable);
+    return ResponseEntity.ok(repository.findByAuthorIgnoreCase(author, pageable));
   }
 
   // Flexible Search
   @GetMapping(params = "authorContains")
-  public Page<Book> searchByAuthorContains(
+  public ResponseEntity<Page<Book>> searchByAuthorContains(
     @RequestParam("authorContains") String author,
     @RequestParam(defaultValue = "0") int page,
     @RequestParam(defaultValue = "10") int size
   ){
     Pageable pageable = PageRequest.of(page, size);
-    return repository.findByAuthorContainingIgnoreCase(author, pageable);
+    return ResponseEntity.ok(repository.findByAuthorContainingIgnoreCase(author, pageable));
   }
 
 
   @PostMapping
-  public Book addBook(@Valid @RequestBody Book newBook) {
+  public ResponseEntity<Book> addBook(@Valid @RequestBody Book newBook) {
     // This sends a tiny "Ask" to the DB, not a request for the whole list
     if (repository.existsByTitleIgnoreCaseAndAuthorIgnoreCase(newBook.getTitle(), newBook.getAuthor())) {
       throw new ResponseStatusException(
         HttpStatus.CONFLICT, "Strict Unique Violation: Book already exists."
     );
     }
-    return repository.save(newBook);
+    Book savedBook = repository.save(newBook);
+    // Returns 201 created
+    return ResponseEntity.status(HttpStatus.CREATED).body(savedBook);
   }
 
   @PutMapping("/{id}")
-  public Book updateBook(@PathVariable UUID id, @RequestBody Book bookDetails) {
+  public ResponseEntity<Book> updateBook(@PathVariable UUID id, @RequestBody Book bookDetails) {
     return repository.findById(id).map(book -> {
       book.setTitle(bookDetails.getTitle());
       book.setAuthor(bookDetails.getAuthor());
-      return repository.save(book);
-    }).orElseThrow(() -> new RuntimeException("Book not found with id " + id));
+      return ResponseEntity.ok(repository.save(book));
+    }).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found with id " + id));
   }
 
   @DeleteMapping("/{id}")
-  public String deleteBook(@PathVariable UUID id){
+  public ResponseEntity<String> deleteBook(@PathVariable UUID id){
     if(repository.existsById(id)){
       repository.deleteById(id);
-      return "Book with ID " + id + " has been successfully deleted.";
+      return ResponseEntity.noContent().build();
     } else {
-      return "Error: Book with ID "  +  id + " not found.";
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Error: Book with ID " + " not found.");
     }
   }
 }
