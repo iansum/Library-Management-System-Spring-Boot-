@@ -28,11 +28,6 @@ public class BookController{
 
   public BookController(BookRepository repository){
     this.repository = repository;
-
-    if (repository.count() == 0) {
-      repository.save(new Book("The Rust Programminng Language", "Steve Klabnik"));
-      repository.save(new Book("Clean Code", "Robert C. Martin"));
-    }
   }
 
   @GetMapping
