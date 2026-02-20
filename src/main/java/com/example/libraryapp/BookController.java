@@ -16,7 +16,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.util.List;
 import java.util.UUID;
 import jakarta.validation.Valid;
 
@@ -31,8 +30,12 @@ public class BookController{
   }
 
   @GetMapping
-  public ResponseEntity<List<Book>> getAllBooks() {
-    return ResponseEntity.ok(repository.findAll());
+  public ResponseEntity<Page<Book>> getAllBooks(
+    @RequestParam(defaultValue = "0") int page,
+    @RequestParam(defaultValue = "10") int size
+  ) { 
+    Pageable pageable = PageRequest.of(page,size);
+    return ResponseEntity.ok(repository.findAll(pageable));
   }
 
 
@@ -84,7 +87,7 @@ public class BookController{
   }
 
   @PutMapping("/{id}")
-  public ResponseEntity<Book> updateBook(@PathVariable UUID id, @RequestBody Book bookDetails) {
+  public ResponseEntity<Book> updateBook(@PathVariable UUID id, @Valid @RequestBody Book bookDetails) {
     return repository.findById(id).map(book -> {
       book.setTitle(bookDetails.getTitle());
       book.setAuthor(bookDetails.getAuthor());
