@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,10 +22,10 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/books")
 public class BookController{
-  private final BookRepository repository;
+  private final BookService bookService;
 
-  public BookController(BookRepository repository){
-    this.repository = repository;
+  public BookController(BookService bookService){
+    this.bookService = bookService;
   }
 
   @GetMapping
@@ -35,7 +34,7 @@ public class BookController{
     @RequestParam(defaultValue = "10") int size
   ) { 
     Pageable pageable = PageRequest.of(page,size);
-    return ResponseEntity.ok(repository.findAll(pageable));
+    return ResponseEntity.ok(bookService.getAllBooks(pageable));
   }
 
 
@@ -46,11 +45,10 @@ public class BookController{
     @RequestParam(defaultValue = "10") int size
   ){
     Pageable pageable = PageRequest.of(page, size);
-    return ResponseEntity.ok(repository.findTitlesByAuthorContainingIgnoreCase(author, pageable));
+    return ResponseEntity.ok(bookService.getBookTitles(author, pageable));
   }
 
 
-  // Strict Search
   @GetMapping(params = "author")
   public ResponseEntity<Page<Book>> searchByAuthorExact(
     @RequestParam String author,
@@ -58,10 +56,9 @@ public class BookController{
     @RequestParam(defaultValue = "10") int size
   ) {
     Pageable pageable = PageRequest.of(page, size);
-    return ResponseEntity.ok(repository.findByAuthorIgnoreCase(author, pageable));
+    return ResponseEntity.ok(bookService.searchByAuthorExact(author, pageable));
   }
 
-  // Flexible Search
   @GetMapping(params = "authorContains")
   public ResponseEntity<Page<Book>> searchByAuthorContains(
     @RequestParam("authorContains") String author,
@@ -69,42 +66,28 @@ public class BookController{
     @RequestParam(defaultValue = "10") int size
   ){
     Pageable pageable = PageRequest.of(page, size);
-    return ResponseEntity.ok(repository.findByAuthorContainingIgnoreCase(author, pageable));
+    return ResponseEntity.ok(bookService.searchByAuthorContains(author, pageable));
   }
 
 
   @PostMapping
   public ResponseEntity<Book> addBook(@Valid @RequestBody Book newBook) {
-    // This sends a tiny "Ask" to the DB, not a request for the whole list
-    if (repository.existsByTitleIgnoreCaseAndAuthorIgnoreCase(newBook.getTitle(), newBook.getAuthor())) {
-      throw new ResponseStatusException(
-        HttpStatus.CONFLICT, "Strict Unique Violation: Book already exists."
-    );
-    }
-    Book savedBook = repository.save(newBook);
-    // Returns 201 created
+    Book savedBook = bookService.addBook(newBook);
     return ResponseEntity.status(HttpStatus.CREATED).body(savedBook);
   }
 
   @PutMapping("/{id}")
   public ResponseEntity<Book> updateBook(@PathVariable UUID id, @Valid @RequestBody Book bookDetails) {
-    return repository.findById(id).map(book -> {
-      book.setTitle(bookDetails.getTitle());
-      book.setAuthor(bookDetails.getAuthor());
-      return ResponseEntity.ok(repository.save(book));
-    }).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found with id " + id));
+    return ResponseEntity.ok(bookService.updateBook(id, bookDetails));
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<String> deleteBook(@PathVariable UUID id){
-    if(repository.existsById(id)){
-      repository.deleteById(id);
-      return ResponseEntity.noContent().build();
-    } else {
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Error: Book with ID " + " not found.");
-    }
+  public ResponseEntity<Void> deleteBook(@PathVariable UUID id){
+    bookService.deleteBook(id);
+    return ResponseEntity.noContent().build();
   }
 }
 
 
 
+    
