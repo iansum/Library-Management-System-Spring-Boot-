@@ -3,8 +3,6 @@ package com.example.libraryapp;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -34,9 +32,7 @@ public class BookService {
 
   public Book addBook(Book newBook){
     if (repository.existsByTitleIgnoreCaseAndAuthorIgnoreCase(newBook.getTitle(), newBook.getAuthor())){
-        throw new ResponseStatusException(
-            HttpStatus.CONFLICT, "Strict Unique Violation: Book already exists."
-        );
+        throw new BookAlreadyExistsException(newBook);
     }
     Book savedBook = repository.save(newBook);
     return savedBook;
@@ -47,12 +43,12 @@ public class BookService {
       book.setTitle(bookDetails.getTitle());
       book.setAuthor(bookDetails.getAuthor());
       return repository.save(book);
-    }).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found with id " + id));
+    }).orElseThrow(() -> new BookNotFoundException(id));
   }
 
   public void deleteBook(UUID id){
     if(!repository.existsById(id)) {
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Error: Book with ID " + id + " not found");
+      throw new BookNotFoundException(id);
     }
     repository.deleteById(id);
   }
